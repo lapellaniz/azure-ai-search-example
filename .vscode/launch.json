@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Examples (usage_async)",
+      "type": "python",
+      "request": "launch",
+      "module": "examples.usage_async",
+      "justMyCode": true
+    },
+    {
+      "name": "Python: Tests (pytest)",
+      "type": "python",
+      "request": "launch",
+      "module": "pytest",
+      "args": [
+        "-q"
+      ],
+      "justMyCode": true
+    }
+  ]
+}
