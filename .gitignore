@@ -1,18 +1,54 @@
-
+# Python
 __pycache__/
-.pytest_cache/
-.venv/
-.env/
-*.pyc
+*.py[cod]
 *.pyo
 *.pyd
-.DS_Store
-.idea/
-.vscode/*.log
-.coverage
-htmlcov/
-.mypy_cache/
-.ruff_cache/
+*.pyc
+*.pdb
+*.egg
+*.egg-info/
 dist/
 build/
-*.egg-info/
+.eggs/
+*.manifest
+*.spec
+*.log
+*.sqlite3
+*.db
+*.ipynb_checkpoints
+
+# VS Code
+.vscode/
+
+# Environment
+.env
+.venv/
+venv/
+ENV/
+env/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test and coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Others
+*.bak
+*.swp
+*.swo
+
+# Azure
+*.azure/

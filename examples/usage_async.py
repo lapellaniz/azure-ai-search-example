@@ -1,30 +1,40 @@
 
 import asyncio
 import logging
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from prompt_retrieval import (
     AzureAISearchConfig,
     AzureAISearchPromptStrategy,
     PromptRetrievalInput,
     QuestionInput,
+    TelemetryService
 )
 
 
 async def main():
     logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger("prompt-retrieval")
+
+    telemetry = TelemetryService(
+        service_name="prompt-retrieval",
+        service_version="0.1.0",
+    )
+
 
     search_config = AzureAISearchConfig(
-        endpoint="https://<your-search>.search.windows.net",
-        api_key="<SEARCH-API-KEY>",
-        api_version="2024-07-01-preview",
-        index_name="<your-index>",
-        similarity_threshold=0.25,
+        endpoint=os.getenv("AZURE_SEARCH_ENDPOINT"),
+        api_key=os.getenv("AZURE_SEARCH_API_KEY"),
+        api_version=os.getenv("AZURE_SEARCH_API_VERSION"),
+        index_name=os.getenv("SEARCH_INDEX_NAME_QUESTIONS"),
+        similarity_threshold=float(os.getenv("SEARCH_SIMILARITY_THRESHOLD", 0.75)),
     )
 
     strategy = AzureAISearchPromptStrategy(
         search_config=search_config,
-        logger=logger,
+        telemetry=telemetry,
         azure_openai_client=None,
         max_parallel_requests=5,
         http_timeout_seconds=20.0,

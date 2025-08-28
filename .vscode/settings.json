@@ -4,5 +4,10 @@
   "python.testing.pytestArgs": [
     "tests"
   ],
-  "python.defaultInterpreterPath": ".venv/bin/python"
+  "python.defaultInterpreterPath": ".venv/bin/python",
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "makefile.configureOnOpen": false
 }

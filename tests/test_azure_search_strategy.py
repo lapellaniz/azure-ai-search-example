@@ -11,6 +11,7 @@ from prompt_retrieval import (
     AzureAISearchPromptStrategy,
     PromptRetrievalInput,
     QuestionInput,
+    TelemetryService
 )
 
 
@@ -95,7 +96,11 @@ def make_strategy(threshold: float = 0.75, max_parallel: int = 5) -> AzureAISear
         index_name="fake-index",
         similarity_threshold=threshold,
     )
-    return AzureAISearchPromptStrategy(search_config=cfg, max_parallel_requests=max_parallel)
+    telemetry = TelemetryService(
+        service_name="prompt-retrieval",
+        service_version="0.1.0",
+    )
+    return AzureAISearchPromptStrategy(search_config=cfg, telemetry=telemetry, max_parallel_requests=max_parallel)
 
 
 def mk_questions(n: int):

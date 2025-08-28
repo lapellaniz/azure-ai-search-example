@@ -8,6 +8,7 @@ from .models import (
 from .config import AzureAISearchConfig, AzureOpenAIClientLike
 from .strategy_base import PromptRetrievalStrategy
 from .azure_search_strategy import AzureAISearchPromptStrategy
+from .telemetry import TelemetryService
 
 __all__ = [
     "QuestionInput",
@@ -18,4 +19,5 @@ __all__ = [
     "AzureOpenAIClientLike",
     "PromptRetrievalStrategy",
     "AzureAISearchPromptStrategy",
+    "TelemetryService",
 ]
