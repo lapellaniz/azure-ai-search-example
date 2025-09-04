@@ -4,19 +4,19 @@ from __future__ import annotations
 import logging
 import os
 from contextlib import contextmanager
-from typing import Optional, Dict, Any
+from typing import Any
 
-from opentelemetry import trace, metrics
-from opentelemetry.trace import Tracer
+from opentelemetry import metrics, trace
 from opentelemetry.metrics import Meter
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import (
+    ConsoleMetricExporter,
+    PeriodicExportingMetricReader,
+)
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor, ConsoleSpanExporter
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import (
-    PeriodicExportingMetricReader,
-    ConsoleMetricExporter,
-)
+from opentelemetry.trace import Tracer
 
 # Azure Monitor (Application Insights) OpenTelemetry exporters
 # NOTE: These are the official exporters for Azure Monitor + OTel (Python). They
@@ -24,9 +24,9 @@ from opentelemetry.sdk.metrics.export import (
 # https://pypi.org/project/azure-monitor-opentelemetry-exporter/
 try:
     from azure.monitor.opentelemetry.exporter import (
-        AzureMonitorTraceExporter,
         AzureMonitorMetricExporter,
         # AzureMonitorLogExporter  # (logs exporter may be experimental)
+        AzureMonitorTraceExporter,
     )
     _HAS_AZURE_EXPORTERS = True
 except Exception:
@@ -55,7 +55,7 @@ class TelemetryService:
         self,
         service_name: str = "prompt-retrieval",
         service_version: str = "0.1.0",
-        logger: Optional[logging.Logger] = None,
+        logger: logging.Logger | None = None,
         enable_console_exporters_when_no_ai: bool = True,
         metric_export_interval_millis: int = 15000,
     ) -> None:
@@ -65,19 +65,25 @@ class TelemetryService:
         connection_string = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
         resource = Resource.create({"service.name": service_name, "service.version": service_version})
 
+        # Check if we're running in a test environment
+        is_testing = (
+            os.getenv("PYTEST_CURRENT_TEST") is not None or
+            "pytest" in service_name.lower()
+        )
+
         # ---------- Tracing ----------
         tracer_provider = TracerProvider(resource=resource)
-        if _HAS_AZURE_EXPORTERS and connection_string:
+        if _HAS_AZURE_EXPORTERS and connection_string and not is_testing:
             tracer_exporter = AzureMonitorTraceExporter(connection_string=connection_string)
             tracer_provider.add_span_processor(BatchSpanProcessor(tracer_exporter))
-        elif enable_console_exporters_when_no_ai:
+        elif enable_console_exporters_when_no_ai and not is_testing:
             tracer_provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
         trace.set_tracer_provider(tracer_provider)
         self._tracer: Tracer = trace.get_tracer(__name__, service_version)
 
         # ---------- Metrics ----------
         metric_readers = []
-        if _HAS_AZURE_EXPORTERS and connection_string:
+        if _HAS_AZURE_EXPORTERS and connection_string and not is_testing:
             metric_exporter = AzureMonitorMetricExporter(connection_string=connection_string)
             metric_readers.append(
                 PeriodicExportingMetricReader(
@@ -85,7 +91,7 @@ class TelemetryService:
                     export_interval_millis=metric_export_interval_millis,
                 )
             )
-        elif enable_console_exporters_when_no_ai:
+        elif enable_console_exporters_when_no_ai and not is_testing:
             metric_readers.append(
                 PeriodicExportingMetricReader(
                     exporter=ConsoleMetricExporter(),
@@ -124,7 +130,7 @@ class TelemetryService:
     # ------------- Tracing helpers -------------
 
     @contextmanager
-    def start_span(self, name: str, attributes: Optional[Dict[str, Any]] = None):
+    def start_span(self, name: str, attributes: dict[str, Any] | None = None):
         """Context manager to create a span around operations."""
         with self._tracer.start_as_current_span(name) as span:
             if attributes:
@@ -147,8 +153,23 @@ class TelemetryService:
 
     def shutdown(self) -> None:
         """
-        Flush and shutdown providers (best-effort).
+        Flush and shutdown providers to ensure clean exit.
         """
-        # TracerProvider / MeterProvider shutdown is implicit in Python process exit,
-        # but you can force a flush by retrieving providers and calling force_flush.
-        pass
+        try:
+            # Force flush any pending traces and metrics
+            tracer_provider = trace.get_tracer_provider()
+            if hasattr(tracer_provider, 'force_flush'):
+                tracer_provider.force_flush(timeout_millis=5000)
+            
+            meter_provider = metrics.get_meter_provider()
+            if hasattr(meter_provider, 'force_flush'):
+                meter_provider.force_flush(timeout_millis=5000)
+            
+            # Shutdown providers
+            if hasattr(tracer_provider, 'shutdown'):
+                tracer_provider.shutdown()
+            if hasattr(meter_provider, 'shutdown'):
+                meter_provider.shutdown()
+        except Exception as e:
+            # Log error but don't raise to avoid disrupting application shutdown
+            self._logger.debug(f"Error during telemetry shutdown: {e}")
