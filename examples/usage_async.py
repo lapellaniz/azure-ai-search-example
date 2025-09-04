@@ -1,22 +1,44 @@
 
+"""
+Async Usage Example
+
+This example demonstrates how to use the SimilaritySearchPromptStrategy to retrieve
+prompts based on questions using Azure AI Search with vector similarity.
+"""
+
 import asyncio
 import logging
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from prompt_retrieval import (
     AzureAISearchConfig,
-    AzureAISearchPromptStrategy,
     PromptRetrievalInput,
     QuestionInput,
-    TelemetryService
+    SimilaritySearchPromptStrategy,
+    TelemetryService,
 )
 
 
 async def main():
     logging.basicConfig(level=logging.INFO)
+
+    # Check for required environment variables
+    required_env_vars = [
+        "AZURE_SEARCH_ENDPOINT",
+        "AZURE_SEARCH_API_KEY", 
+        "AZURE_SEARCH_API_VERSION",
+        "SEARCH_INDEX_NAME_QUESTIONS"
+    ]
+    
+    missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+    if missing_vars:
+        print(f"Missing required environment variables: {missing_vars}")
+        print("Please create a .env file based on .env.example")
+        return
 
     telemetry = TelemetryService(
         service_name="prompt-retrieval",
@@ -32,12 +54,9 @@ async def main():
         similarity_threshold=float(os.getenv("SEARCH_SIMILARITY_THRESHOLD", 0.75)),
     )
 
-    strategy = AzureAISearchPromptStrategy(
+    strategy = SimilaritySearchPromptStrategy(
         search_config=search_config,
-        telemetry=telemetry,
-        azure_openai_client=None,
-        max_parallel_requests=5,
-        http_timeout_seconds=20.0,
+        telemetry=telemetry
     )
 
     request = PromptRetrievalInput(

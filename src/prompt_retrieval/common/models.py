@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 
 @dataclass(frozen=True)
@@ -14,7 +13,7 @@ class QuestionInput:
 @dataclass(frozen=True)
 class PromptRetrievalInput:
     assessment_template_id: str
-    questions: List[QuestionInput]
+    questions: list[QuestionInput]
 
 
 @dataclass
@@ -22,12 +21,12 @@ class QuestionPromptMatch:
     question_id: str
     question_text: str
     match_found: bool
-    match_score: Optional[float] = None
-    selected_prompt_text: Optional[str] = None
-    error: Optional[str] = None
+    match_score: float | None = None
+    selected_prompt_text: str | None = None
+    error: str | None = None
 
 
 @dataclass
 class PromptRetrievalOutput:
     assessment_template_id: str
-    results: List[QuestionPromptMatch] = field(default_factory=list)
+    results: list[QuestionPromptMatch] = field(default_factory=list)
